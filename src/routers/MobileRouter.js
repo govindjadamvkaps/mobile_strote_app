@@ -1,11 +1,18 @@
 import express from 'express'
-import { saveAdmin, saveMobile, saveRating } from '../controllers/MobileController.js'
+import { fetchAdmin, fetchMobile, fetchRating, loginAdmin, saveAdmin, saveMobile, saveRating } from '../controllers/MobileController.js'
 
 
 const MobileRouter = express.Router()
 
 
 MobileRouter.post("/mobiles",saveMobile)
-MobileRouter.post('/admins',saveAdmin)
+MobileRouter.get("/mobiles", fetchMobile)
+
+MobileRouter.post('/registrations',saveAdmin)
+MobileRouter.get("/admins", fetchAdmin)
+MobileRouter.post("/login", loginAdmin)
+
+
 MobileRouter.post('/ratings',saveRating)
+MobileRouter.get('/ratings', fetchRating)
 export default MobileRouter
