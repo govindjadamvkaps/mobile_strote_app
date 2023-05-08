@@ -1,6 +1,7 @@
 import { AdminModel, MobileModel, RateModel } from "../models/MobileModel.js";
 import {  StatusCodes } from 'http-status-codes'
 import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
 
 // Mobile Api
 export async function saveMobile(req,res){
@@ -22,15 +23,23 @@ export async function fetchMobile(req,res){
     }
 }
 
+export async function fetchByObjId(req,res){
+    try {
+        const mobile = await MobileModel.findById(req.params.id)
+        res.status(StatusCodes.OK).json(mobile)
+    } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in fetching product by obj Id"})
+    }
+}
 
 // Admin Api
 
 export async function saveAdmin(req,res){
     try {
         const encryptedPassword = bcrypt.hashSync(req.body.password, 10)
-        //const encryptedConfirmPassword = bcrypt.hashSync(req.body.cpassword,10)
+        
         req.body['password']= encryptedPassword
-        // req.body['cpassword'] = encryptedConfirmPassword
+        
         const admin = AdminModel(req.body)
         const savedAdmin = await admin.save()
         res.status(StatusCodes.CREATED).json(savedAdmin)
@@ -38,6 +47,7 @@ export async function saveAdmin(req,res){
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in saving admin"})
     }
 }
+
 export async function fetchAdmin(req,res){
     try {
         const admin  = await AdminModel.find()
@@ -49,7 +59,7 @@ export async function fetchAdmin(req,res){
 
 
 
-
+// Login api
 
     export async function loginAdmin(req,res){
         try {
@@ -61,7 +71,13 @@ export async function fetchAdmin(req,res){
            
             const isPassword =  bcrypt.compareSync(pass,admin.password)
             if(isPassword){
-                res.status(StatusCodes.OK).json(admin)
+                const token = jwt.sign({_id:admin._id}, process.env.SECRET_KEY)
+
+                res.cookie('jwtoken',token,{
+                    expires: new Date(Date.now()+5000),
+                    httpOnly: true
+                })
+                res.status(StatusCodes.OK).json({"token":token,admin})
 
             }else{
                 res.status(StatusCodes.BAD_REQUEST).json({message:"password is not match"})
