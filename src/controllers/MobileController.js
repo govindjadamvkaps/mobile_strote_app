@@ -25,10 +25,26 @@ export async function fetchMobile(req,res){
 
 export async function fetchByObjId(req,res){
     try {
-        const mobile = await MobileModel.findById(req.params.id)
+        const mobile = await MobileModel.findById(req.params.id).populate({path: 'ratingId', populate: {
+            path: 'adminId'
+        }})
+
+        // const mobile = await MobileModel.findById(req.params.id).populate('ratingId')
+        // console.log(mobile)
         res.status(StatusCodes.OK).json(mobile)
     } catch (error) {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in fetching product by obj Id"})
+    }
+}
+
+
+export async function fetchMobileByRateId(req,res){
+    try {
+        const mobile = await MobileModel.findOne({ratingId:req.params.id})
+        res.status(StatusCodes.OK).json(mobile)
+
+    } catch (error) {
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in fatching mobile by rating Id"})
     }
 }
 
@@ -53,9 +69,20 @@ export async function fetchAdmin(req,res){
         const admin  = await AdminModel.find()
         res.status(StatusCodes.OK).json(admin)
     } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in fetching product"})
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in fetching admin"})
     }
 }
+
+export async function fetchAdminById(req,res){
+    try {
+        const admin = await AdminModel.findById(req.params.id).populate('ratingId')
+        res.status(StatusCodes.OK).json(admin)
+    } catch (error) {
+        console.log(error)
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in fetching admin by obj Id"})
+    }
+}
+
 
 
 
@@ -99,11 +126,52 @@ export async function fetchAdmin(req,res){
 
 export async function saveRating(req,res){
     try {
-        const rate = RateModel(req.body)
-        const savedRate = await rate.save()
-        res.status(StatusCodes.CREATED).json(savedRate)
+
+        // alredy rate the product
+
+        let rating = await RateModel.find({adminId:req.body.adminId ,mobileId: req.body.mobileId})
+        // console.log(rating)
+        if(rating.length){
+            return res.status(StatusCodes.OK).json({
+                message: "You have already rated this product",
+                success: false
+                })
+        }
+
+         rating =await RateModel(req.body)
+        // console.log(req.body)
+        // console.log(rating)
+        // console.log(rating._id)
+        rating.save()
+        let  mobile=  await MobileModel.findById(req.body.mobileId).populate('ratingId')
+        // console.log(mobile)
+
+        mobile.ratingId.push(rating._id)
+        // mobile.save()
+        //change the product avg rating as well
+
+        const rating1 = await RateModel.find({mobileId:req.body.mobileId})
+
+        let sumRatings = 0
+
+        rating1.map((val)=>{
+            sumRatings+=val.rating
+            // console.log(val.rating)
+        })
+        console.log(sumRatings)
+        let avgRating = Math.round(sumRatings/rating1.length)
+        // console.log("average",avgRating)
+        mobile.star = avgRating
+       
+         const savedMobile = await mobile.save()
+        // const savedRate = await rate.save()
+
+        res.status(StatusCodes.CREATED).json({data:saveMobile,message:"rating successful", success: true})
+        
+        // res.status(StatusCodes.CREATED).json({savedMobile,savedRate})
     } catch (error) {
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in saving admin"})
+        console.log(error)
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({message:"error in saving rating data"})
     }
 }
 
